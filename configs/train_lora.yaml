@@ -51,3 +51,6 @@ eval_strategy: steps
 
 ### Flash Attention (enabled for A800)
 flash_attn: fa2
+
+### DeepSpeed ZeRO-3 (for multi-GPU training)
+deepspeed: configs/ds_z3_config.json
