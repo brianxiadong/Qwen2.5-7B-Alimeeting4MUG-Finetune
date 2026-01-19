@@ -16,7 +16,6 @@ infer_backend: huggingface
 
 ### Generation Parameters
 do_sample: false
-temperature: 0.1
-top_p: 0.9
-max_new_tokens: 64
-repetition_penalty: 1.0
+num_beams: 4
+max_new_tokens: 32
+repetition_penalty: 1.5
