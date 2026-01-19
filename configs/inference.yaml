@@ -1,10 +1,14 @@
 ### Model Configuration
-model_name_or_path: Qwen/Qwen2.5-7B
+model_name_or_path: /data/Alimeeting4MUG/models/Qwen/Qwen2.5-7B
 trust_remote_code: true
 
 ### Adapter Configuration
 adapter_name_or_path: ./outputs/qwen2.5-7b-mug-lora
 finetuning_type: lora
+
+### Quantization (must match training)
+quantization_bit: 4
+quantization_method: bitsandbytes
 
 ### Inference Configuration
 template: qwen
