@@ -8,10 +8,50 @@ echo "========================================"
 echo "Qwen2.5-7B AliMeeting4MUG 微调环境配置"
 echo "========================================"
 
+# 尝试初始化 conda
+init_conda() {
+    # 常见的 conda 安装路径
+    CONDA_PATHS=(
+        "$HOME/miniconda3"
+        "$HOME/anaconda3"
+        "/opt/conda"
+        "/opt/miniconda3"
+        "/opt/anaconda3"
+        "/work/anaconda3"
+        "/work/miniconda3"
+        "/data/anaconda3"
+        "/data/miniconda3"
+    )
+    
+    for conda_path in "${CONDA_PATHS[@]}"; do
+        if [ -f "$conda_path/etc/profile.d/conda.sh" ]; then
+            echo "🔍 找到 conda: $conda_path"
+            source "$conda_path/etc/profile.d/conda.sh"
+            return 0
+        fi
+    done
+    
+    # 如果上面都没找到，尝试使用 which conda
+    if which conda &> /dev/null; then
+        CONDA_BIN=$(which conda)
+        CONDA_BASE=$(dirname $(dirname $CONDA_BIN))
+        if [ -f "$CONDA_BASE/etc/profile.d/conda.sh" ]; then
+            echo "🔍 找到 conda: $CONDA_BASE"
+            source "$CONDA_BASE/etc/profile.d/conda.sh"
+            return 0
+        fi
+    fi
+    
+    return 1
+}
+
 # 检查 conda 是否可用
-if ! command -v conda &> /dev/null; then
+if ! init_conda; then
     echo "❌ 未找到 conda，请先安装 Miniconda 或 Anaconda"
     echo "   下载地址: https://docs.conda.io/en/latest/miniconda.html"
+    echo ""
+    echo "   或者手动初始化 conda:"
+    echo "   source /path/to/conda/etc/profile.d/conda.sh"
     exit 1
 fi
 
@@ -27,7 +67,6 @@ if conda env list | grep -q "^${ENV_NAME} "; then
         conda env remove -n ${ENV_NAME} -y
     else
         echo "使用现有环境..."
-        source $(conda info --base)/etc/profile.d/conda.sh
         conda activate ${ENV_NAME}
     fi
 fi
@@ -39,7 +78,6 @@ if ! conda env list | grep -q "^${ENV_NAME} "; then
 fi
 
 # 激活环境
-source $(conda info --base)/etc/profile.d/conda.sh
 conda activate ${ENV_NAME}
 
 echo "✅ 环境已激活: ${ENV_NAME}"
