@@ -18,7 +18,7 @@ dataset_dir: ./data
 dataset: alimeeting4mug_train
 eval_dataset: alimeeting4mug_dev
 template: qwen
-cutoff_len: 2048
+cutoff_len: 1024
 max_samples: 10000
 overwrite_cache: true
 preprocessing_num_workers: 8
@@ -45,9 +45,9 @@ ddp_timeout: 180000000
 val_size: 0.0
 eval_strategy: steps
 
-### Quantization (enable for lower VRAM usage)
-quantization_bit: 4
-quantization_method: bitsandbytes
+### Quantization (uncomment if OOM)
+# quantization_bit: 4
+# quantization_method: bitsandbytes
 
 ### Flash Attention (for faster training, requires compatible GPU)
 # flash_attn: fa2
