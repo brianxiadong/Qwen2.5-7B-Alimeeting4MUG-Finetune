@@ -2,11 +2,35 @@
 
 使用 **LLaMA-Factory** 对 Qwen2.5-7B 进行 LoRA 微调，训练模型执行会议理解与生成（MUG）任务。
 
-## 📋 目录
+## � 快速开始
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/brianxiadong/Qwen2.5-7B-Alimeeting4MUG-Finetune.git
+cd Qwen2.5-7B-Alimeeting4MUG-Finetune
+
+# 2. 一键配置环境 (自动创建 conda 环境并安装所有依赖)
+bash setup.sh
+
+# 3. 激活环境
+conda activate qwen_finetune
+
+# 4. 下载模型
+python scripts/download_model.py
+
+# 5. 预处理数据
+python scripts/preprocess_data.py
+
+# 6. 开始训练
+llamafactory-cli train configs/train_lora.yaml
+```
+
+## �📋 目录
 
 - [项目简介](#项目简介)
 - [数据集说明](#数据集说明)
 - [环境配置](#环境配置)
+- [模型下载](#模型下载)
 - [数据预处理](#数据预处理)
 - [模型训练](#模型训练)
 - [模型推理](#模型推理)
@@ -125,29 +149,88 @@ dataset/
 
 ## 环境配置
 
-### 1. 克隆 LLaMA-Factory
+### 1. 创建 Conda 环境
 
 ```bash
+# 创建新的 Python 3.10 环境
+conda create -n qwen_finetune python=3.10 -y
+conda activate qwen_finetune
+
+# 安装 PyTorch (根据 CUDA 版本选择)
+# CUDA 11.8
+pip install torch==2.1.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+# 或 CUDA 12.1
+# pip install torch==2.1.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+```
+
+### 2. 克隆项目和 LLaMA-Factory
+
+```bash
+# 克隆本项目
+git clone https://github.com/brianxiadong/Qwen2.5-7B-Alimeeting4MUG-Finetune.git
+cd Qwen2.5-7B-Alimeeting4MUG-Finetune
+
+# 克隆 LLaMA-Factory
 git clone --depth 1 https://github.com/hiyouga/LLaMA-Factory.git
 cd LLaMA-Factory
 pip install -e ".[torch,metrics]"
+cd ..
 ```
 
-### 2. 安装额外依赖
+### 3. 安装项目依赖
 
 ```bash
-# Flash Attention 2 (可选，加速训练)
+pip install -r requirements.txt
+```
+
+### 4. 安装可选加速组件
+
+```bash
+# Flash Attention 2 (推荐，可显著加速训练)
 pip install flash-attn --no-build-isolation
 
-# 4-bit 量化支持 (低显存时使用)
-pip install bitsandbytes>=0.43.0
+# DeepSpeed (多 GPU 训练)
+pip install deepspeed
 ```
 
-### 3. 验证安装
+### 5. 验证安装
 
 ```bash
+# 验证 LLaMA-Factory
 llamafactory-cli version
+
+# 验证 PyTorch CUDA
+python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}')"
 ```
+
+---
+
+## 模型下载
+
+### 使用 ModelScope 下载（推荐国内用户）
+
+```bash
+# 安装 modelscope
+pip install modelscope
+
+# 下载 Qwen2.5-7B 模型
+python scripts/download_model.py --model_id Qwen/Qwen2.5-7B --cache_dir ./models
+```
+
+下载完成后，修改 `configs/train_lora.yaml` 中的模型路径：
+```yaml
+model_name_or_path: ./models/Qwen/Qwen2.5-7B
+```
+
+### 其他可选模型
+
+| 模型 | ModelScope ID | 显存需求 |
+|------|---------------|----------|
+| Qwen2.5-7B | `Qwen/Qwen2.5-7B` | ~24GB (LoRA) |
+| Qwen2.5-7B-Instruct | `Qwen/Qwen2.5-7B-Instruct` | ~24GB (LoRA) |
+| Qwen2.5-3B | `Qwen/Qwen2.5-3B` | ~12GB (LoRA) |
+| Qwen2.5-1.5B | `Qwen/Qwen2.5-1.5B` | ~8GB (LoRA) |
 
 ---
 

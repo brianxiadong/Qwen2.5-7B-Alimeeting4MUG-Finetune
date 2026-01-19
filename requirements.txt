@@ -21,3 +21,6 @@ jieba>=0.42.1
 
 # Configuration
 pyyaml>=6.0
+
+# Model Download (ModelScope for faster download in China)
+modelscope>=1.10.0
