@@ -355,6 +355,64 @@ llamafactory-cli export configs/merge.yaml
 
 ---
 
+## 模型验证与评估
+
+### 训练损失 (Loss) 参考标准
+
+| 阶段 | Loss 范围 | 说明 |
+|------|-----------|------|
+| 初始 | 2.0 - 5.0 | 训练刚开始的损失 |
+| 收敛后 | 0.5 - 1.5 | 较好的收敛状态 |
+| 理想目标 | 0.3 - 0.8 | 会议生成任务的合理范围 |
+
+> **注意**: Loss 过低（< 0.1）可能意味着过拟合，需检查验证集 loss 是否同步下降。
+
+### 推荐 GPU 配置
+
+| GPU | 显存 | 推荐配置 | 预估训练时间 |
+|-----|------|----------|--------------|
+| **A800 80GB** | 80GB | batch_size=8, cutoff_len=4096, lora_rank=128 | ~25 分钟 |
+| **A100 80GB** | 80GB | batch_size=8, cutoff_len=4096, lora_rank=128 | ~25 分钟 |
+| **A100 40GB** | 40GB | batch_size=2, cutoff_len=2048, lora_rank=64 | ~40 分钟 |
+| **RTX 4090** | 24GB | batch_size=1, cutoff_len=2048, 4bit量化 | ~60 分钟 |
+
+### 验证训练效果
+
+#### 1. 查看训练日志
+
+```bash
+# 查看训练状态
+cat outputs/qwen2.5-7b-mug-lora/trainer_state.json | python -m json.tool
+```
+
+#### 2. 运行评估脚本
+
+```bash
+# 在验证集上评估模型
+python scripts/evaluate.py \
+    --model_path outputs/qwen2.5-7b-mug-lora \
+    --data_path data/dev_alpaca.json \
+    --output_path outputs/eval_results.json
+```
+
+#### 3. 评估指标
+
+| 指标 | 说明 | 良好范围 |
+|------|------|----------|
+| ROUGE-L | 生成文本与参考的最长公共子序列 | > 0.4 |
+| BLEU-4 | N-gram 匹配精度 | > 0.3 |
+| Exact Match | 完全匹配率 | > 0.1 |
+
+### 常见训练问题排查
+
+| 问题 | 现象 | 解决方案 |
+|------|------|----------|
+| Loss 不下降 | 训练多 epoch 后 loss 仍 > 3.0 | 检查数据格式、增大学习率 |
+| Loss 过高 | 最终 loss > 2.0 | 增加 epoch、增大 batch_size |
+| 过拟合 | 训练 loss 降但验证 loss 升 | 增加 dropout、减少 epoch |
+
+---
+
 ## 常见问题
 
 ### Q1: 显存不足 (OOM)

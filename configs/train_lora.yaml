@@ -7,9 +7,9 @@ stage: sft
 do_train: true
 finetuning_type: lora
 
-### LoRA Configuration  
-lora_rank: 64
-lora_alpha: 128
+### LoRA Configuration (A800 80GB optimized)
+lora_rank: 128
+lora_alpha: 256
 lora_dropout: 0.05
 lora_target: q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj
 
@@ -18,7 +18,7 @@ dataset_dir: ./data
 dataset: alimeeting4mug_train
 eval_dataset: alimeeting4mug_dev
 template: qwen
-cutoff_len: 2048
+cutoff_len: 4096
 max_samples: 10000
 overwrite_cache: true
 preprocessing_num_workers: 8
@@ -27,17 +27,17 @@ preprocessing_num_workers: 8
 output_dir: ./outputs/qwen2.5-7b-mug-lora
 logging_dir: ./outputs/logs
 logging_steps: 10
-save_steps: 500
-eval_steps: 500
+save_steps: 200
+eval_steps: 200
 save_total_limit: 3
 
-per_device_train_batch_size: 4
-per_device_eval_batch_size: 4
-gradient_accumulation_steps: 4
+per_device_train_batch_size: 8
+per_device_eval_batch_size: 8
+gradient_accumulation_steps: 8
 learning_rate: 2.0e-4
-num_train_epochs: 3.0
+num_train_epochs: 5.0
 lr_scheduler_type: cosine
-warmup_ratio: 0.05
+warmup_ratio: 0.1
 bf16: true
 ddp_timeout: 180000000
 
@@ -45,9 +45,9 @@ ddp_timeout: 180000000
 val_size: 0.0
 eval_strategy: steps
 
-### Quantization (disabled for A100 bf16 training)
+### Quantization (disabled for A800 bf16 training)
 # quantization_bit: 4
 # quantization_method: bitsandbytes
 
-### Flash Attention (enabled for A100)
+### Flash Attention (enabled for A800)
 flash_attn: fa2
