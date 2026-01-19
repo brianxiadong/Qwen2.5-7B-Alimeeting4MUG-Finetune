@@ -1,0 +1,23 @@
+# Core Dependencies
+torch>=2.1.0
+transformers>=4.40.0
+peft>=0.10.0
+bitsandbytes>=0.43.0
+accelerate>=0.29.0
+datasets>=2.18.0
+
+# Data Processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Training Utilities
+tqdm>=4.66.0
+tensorboard>=2.16.0
+wandb>=0.16.0
+
+# Evaluation
+rouge-chinese>=1.0.3
+jieba>=0.42.1
+
+# Configuration
+pyyaml>=6.0

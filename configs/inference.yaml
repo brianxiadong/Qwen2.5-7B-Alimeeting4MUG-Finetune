@@ -1,0 +1,18 @@
+### Model Configuration
+model_name_or_path: Qwen/Qwen2.5-7B
+trust_remote_code: true
+
+### Adapter Configuration
+adapter_name_or_path: ./outputs/qwen2.5-7b-mug-lora
+finetuning_type: lora
+
+### Inference Configuration
+template: qwen
+infer_backend: huggingface
+
+### Generation Parameters
+do_sample: true
+temperature: 0.7
+top_p: 0.9
+max_new_tokens: 512
+repetition_penalty: 1.1

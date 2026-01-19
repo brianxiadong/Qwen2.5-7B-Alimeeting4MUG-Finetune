@@ -1,0 +1,344 @@
+# Qwen2.5-7B AliMeeting4MUG LoRA Fine-tuning
+
+使用 **LLaMA-Factory** 对 Qwen2.5-7B 进行 LoRA 微调，训练模型执行会议理解与生成（MUG）任务。
+
+## 📋 目录
+
+- [项目简介](#项目简介)
+- [数据集说明](#数据集说明)
+- [环境配置](#环境配置)
+- [数据预处理](#数据预处理)
+- [模型训练](#模型训练)
+- [模型推理](#模型推理)
+- [常见问题](#常见问题)
+
+---
+
+## 项目简介
+
+本项目基于阿里巴巴 **AliMeeting4MUG** 数据集，使用 LoRA（Low-Rank Adaptation）技术对 Qwen2.5-7B 大语言模型进行高效微调。
+
+### 支持的 MUG 任务
+
+| 任务 | 英文 | 说明 |
+|------|------|------|
+| 主题标题生成 | Topic Title Generation (TTG) | 为会议片段生成简洁的主题标题 |
+| 抽取式摘要 | Extractive Summarization (ES) | 从会议中提取关键句子作为摘要 |
+| 主题分割 | Topic Segmentation (TS) | 识别会议中的主题边界 |
+| 关键词提取 | Keyphrase Extraction (KPE) | 提取会议关键词 |
+| 行动项检测 | Action Item Detection (AID) | 检测会议中的待办事项 |
+
+---
+
+## 数据集说明
+
+### 概述
+
+AliMeeting4MUG 是阿里巴巴发布的大规模中文会议理解语料库，包含 654 场录制的普通话会议，每场会议 15-30 分钟，涉及 2-4 名参与者。
+
+### 文件结构
+
+```
+dataset/
+├── train.csv    # 训练集 (296 条会议, ~30MB)
+└── dev.csv      # 验证集 (66 条会议, ~7MB)
+```
+
+### CSV 格式
+
+每个 CSV 文件包含两列：
+
+| 列名 | 说明 |
+|------|------|
+| `idx` | 样本索引 (0, 1, 2, ...) |
+| `content` | JSON 格式的会议数据 |
+
+### Content JSON 结构
+
+```json
+{
+  "meeting_key": "M0138",
+  
+  "topic_segment_ids": [
+    {
+      "id": 88,
+      "candidate": [
+        {
+          "title": "文艺晚会找领导讲话并安排座位",
+          "key_sentence": ["6", "24", "45"]
+        },
+        {
+          "title": "如何安排文艺晚会的座位",
+          "key_sentence": ["60", "77"]
+        }
+      ]
+    }
+  ],
+  
+  "sentence_list": [
+    {
+      "id": 1,
+      "speaker": "no.0",
+      "start_time": "0.0",
+      "end_time": "5.2",
+      "s": "今天我们来讨论一下晚会的安排。"
+    },
+    {
+      "id": 2,
+      "speaker": "no.1", 
+      "start_time": "5.5",
+      "end_time": "10.1",
+      "s": "好的，我们先从座位开始。"
+    }
+  ],
+  
+  "paragraph_segment_ids": [
+    {"id": 3}, {"id": 10}, {"id": 25}
+  ],
+  
+  "action_ids": [
+    {"id": 45}, {"id": 120}
+  ]
+}
+```
+
+### 字段详解
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `meeting_key` | string | 会议唯一标识符 |
+| `topic_segment_ids` | array | 主题分段信息，每个分段包含 ID 和候选标题 |
+| `topic_segment_ids[].id` | int | 该主题段结束的句子 ID |
+| `topic_segment_ids[].candidate` | array | 候选标题列表（通常 3 个） |
+| `candidate[].title` | string | 主题标题 |
+| `candidate[].key_sentence` | array | 该主题的关键句子 ID 列表 |
+| `sentence_list` | array | 完整会议转录 |
+| `sentence_list[].id` | int | 句子 ID |
+| `sentence_list[].speaker` | string | 说话人标识 (no.0, no.1, ...) |
+| `sentence_list[].start_time` | string | 开始时间（秒） |
+| `sentence_list[].end_time` | string | 结束时间（秒） |
+| `sentence_list[].s` | string | 句子文本内容 |
+| `paragraph_segment_ids` | array | 段落分段点的句子 ID |
+| `action_ids` | array | 行动项句子的 ID |
+
+---
+
+## 环境配置
+
+### 1. 克隆 LLaMA-Factory
+
+```bash
+git clone --depth 1 https://github.com/hiyouga/LLaMA-Factory.git
+cd LLaMA-Factory
+pip install -e ".[torch,metrics]"
+```
+
+### 2. 安装额外依赖
+
+```bash
+# Flash Attention 2 (可选，加速训练)
+pip install flash-attn --no-build-isolation
+
+# 4-bit 量化支持 (低显存时使用)
+pip install bitsandbytes>=0.43.0
+```
+
+### 3. 验证安装
+
+```bash
+llamafactory-cli version
+```
+
+---
+
+## 数据预处理
+
+### 运行预处理脚本
+
+```bash
+# 进入项目目录
+cd /path/to/Qwen2.5-7B-Alimeeting4MUG-Finetune
+
+# 执行数据转换（默认：主题标题生成任务）
+python scripts/preprocess_data.py
+
+# 或指定其他任务
+python scripts/preprocess_data.py --task extractive_summary
+```
+
+### 检查输出
+
+```bash
+# 查看生成的训练数据
+head -n 3 data/train_alpaca.json
+```
+
+预期输出格式：
+```json
+[
+  {
+    "instruction": "你是一个专业的会议助手。请根据以下会议内容片段，生成一个简洁准确的主题标题。",
+    "input": "会议内容：\n[no.0]: 今天我们来讨论一下晚会的安排。\n[no.1]: 好的，我们先从座位开始。",
+    "output": "文艺晚会找领导讲话并安排座位"
+  }
+]
+```
+
+### 复制数据集配置
+
+**重要**：需要将 `dataset_info.json` 复制到 LLaMA-Factory 的 data 目录，或将生成的数据文件复制过去：
+
+```bash
+# 方式1：复制配置到 LLaMA-Factory
+cp data/dataset_info.json /path/to/LLaMA-Factory/data/
+cp data/*.json /path/to/LLaMA-Factory/data/
+
+# 方式2：在配置中使用绝对路径
+# 修改 configs/train_lora.yaml 中的 dataset_dir 为绝对路径
+```
+
+---
+
+## 模型训练
+
+### 基础训练命令
+
+```bash
+cd /path/to/LLaMA-Factory
+
+# 使用项目配置文件训练
+llamafactory-cli train /path/to/Qwen2.5-7B-Alimeeting4MUG-Finetune/configs/train_lora.yaml
+```
+
+### 显存不足时使用量化
+
+编辑 `configs/train_lora.yaml`，取消注释量化配置：
+
+```yaml
+# 4-bit 量化 (适用于 16GB 显存 GPU)
+quantization_bit: 4
+quantization_method: bitsandbytes
+```
+
+### 多 GPU 训练
+
+```bash
+# 使用 DeepSpeed ZeRO-2
+CUDA_VISIBLE_DEVICES=0,1,2,3 llamafactory-cli train configs/train_lora.yaml \
+    --deepspeed examples/deepspeed/ds_z2_config.json
+```
+
+### 训练参数说明
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `lora_rank` | 64 | LoRA 秩，越大表达能力越强 |
+| `lora_alpha` | 128 | LoRA 缩放因子 |
+| `learning_rate` | 2e-4 | 学习率 |
+| `num_train_epochs` | 3 | 训练轮数 |
+| `per_device_train_batch_size` | 2 | 每 GPU 批次大小 |
+| `gradient_accumulation_steps` | 8 | 梯度累积步数 |
+| `cutoff_len` | 2048 | 最大序列长度 |
+
+---
+
+## 模型推理
+
+### 交互式对话
+
+```bash
+cd /path/to/LLaMA-Factory
+
+llamafactory-cli chat /path/to/Qwen2.5-7B-Alimeeting4MUG-Finetune/configs/inference.yaml
+```
+
+### 示例对话
+
+```
+User: 请根据以下会议内容生成主题标题：
+[no.0]: 我们来讨论一下下周的产品发布会。
+[no.1]: 发布会的场地已经确定了吗？
+[no.0]: 确定了，在公司大会议室。
+[no.1]: 好的，那我们需要准备哪些材料？
+
+Assistant: 产品发布会场地及材料准备讨论
+```
+
+### 合并 LoRA 权重到基础模型
+
+```bash
+llamafactory-cli export configs/merge.yaml
+```
+
+---
+
+## 常见问题
+
+### Q1: 显存不足 (OOM)
+
+**解决方案：**
+1. 启用 4-bit 量化：在 `train_lora.yaml` 中取消注释 `quantization_bit: 4`
+2. 减小批次大小：`per_device_train_batch_size: 1`
+3. 减小序列长度：`cutoff_len: 1024`
+4. 使用梯度检查点：`gradient_checkpointing: true`
+
+### Q2: 训练速度慢
+
+**解决方案：**
+1. 安装 Flash Attention 2：`pip install flash-attn --no-build-isolation`
+2. 启用 bf16 训练（需要 Ampere 及以上 GPU）
+3. 使用多 GPU 训练
+
+### Q3: 模型输出质量差
+
+**解决方案：**
+1. 增加训练轮数
+2. 调整 LoRA rank（尝试 128 或 256）
+3. 检查数据质量，确保预处理正确
+
+### Q4: 如何使用 Web UI 训练？
+
+```bash
+cd LLaMA-Factory
+llamafactory-cli webui
+```
+
+然后在浏览器中打开 http://localhost:7860
+
+---
+
+## 项目结构
+
+```
+Qwen2.5-7B-Alimeeting4MUG-Finetune/
+├── dataset/                    # 原始数据集
+│   ├── train.csv
+│   └── dev.csv
+├── data/                       # 处理后的数据
+│   ├── dataset_info.json       # LLaMA-Factory 数据集配置
+│   ├── train_alpaca.json       # 训练数据 (Alpaca 格式)
+│   └── dev_alpaca.json         # 验证数据 (Alpaca 格式)
+├── configs/                    # 配置文件
+│   ├── train_lora.yaml         # 训练配置
+│   └── inference.yaml          # 推理配置
+├── scripts/                    # 脚本
+│   └── preprocess_data.py      # 数据预处理
+├── outputs/                    # 训练输出 (自动生成)
+│   └── qwen2.5-7b-mug-lora/    # LoRA 权重
+└── README.md                   # 项目文档
+```
+
+---
+
+## 参考资料
+
+- [LLaMA-Factory GitHub](https://github.com/hiyouga/LLaMA-Factory)
+- [Qwen2.5 技术报告](https://qwenlm.github.io/blog/qwen2.5/)
+- [AliMeeting4MUG 论文](https://arxiv.org/abs/2302.08466)
+- [LoRA 论文](https://arxiv.org/abs/2106.09685)
+
+---
+
+## License
+
+MIT License

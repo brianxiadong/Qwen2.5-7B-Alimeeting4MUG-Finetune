@@ -1,0 +1,53 @@
+### Model Configuration
+model_name_or_path: Qwen/Qwen2.5-7B
+trust_remote_code: true
+
+### Fine-tuning Method
+stage: sft
+do_train: true
+finetuning_type: lora
+
+### LoRA Configuration  
+lora_rank: 64
+lora_alpha: 128
+lora_dropout: 0.05
+lora_target: q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj
+
+### Dataset Configuration
+dataset_dir: ./data
+dataset: alimeeting4mug_train
+eval_dataset: alimeeting4mug_dev
+template: qwen
+cutoff_len: 2048
+max_samples: 10000
+overwrite_cache: true
+preprocessing_num_workers: 8
+
+### Training Parameters
+output_dir: ./outputs/qwen2.5-7b-mug-lora
+logging_dir: ./outputs/logs
+logging_steps: 10
+save_steps: 500
+eval_steps: 500
+save_total_limit: 3
+
+per_device_train_batch_size: 2
+per_device_eval_batch_size: 2
+gradient_accumulation_steps: 8
+learning_rate: 2.0e-4
+num_train_epochs: 3.0
+lr_scheduler_type: cosine
+warmup_ratio: 0.05
+bf16: true
+ddp_timeout: 180000000
+
+### Evaluation
+val_size: 0.0
+eval_strategy: steps
+
+### Quantization (for low VRAM, uncomment if needed)
+# quantization_bit: 4
+# quantization_method: bitsandbytes
+
+### Flash Attention (for faster training, requires compatible GPU)
+# flash_attn: fa2

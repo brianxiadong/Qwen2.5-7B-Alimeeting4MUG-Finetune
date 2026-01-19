@@ -1,0 +1,20 @@
+{
+    "alimeeting4mug_train": {
+        "file_name": "train_alpaca.json",
+        "formatting": "alpaca",
+        "columns": {
+            "prompt": "instruction",
+            "query": "input",
+            "response": "output"
+        }
+    },
+    "alimeeting4mug_dev": {
+        "file_name": "dev_alpaca.json",
+        "formatting": "alpaca",
+        "columns": {
+            "prompt": "instruction",
+            "query": "input",
+            "response": "output"
+        }
+    }
+}
