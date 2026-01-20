@@ -7,10 +7,10 @@ stage: sft
 do_train: true
 finetuning_type: lora
 
-### LoRA Configuration (A800 80GB optimized)
-lora_rank: 128
-lora_alpha: 256
-lora_dropout: 0.05
+### LoRA Configuration (防过拟合优化版 v2)
+lora_rank: 64
+lora_alpha: 128
+lora_dropout: 0.1
 lora_target: q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj
 
 ### Dataset Configuration
@@ -27,15 +27,15 @@ preprocessing_num_workers: 8
 output_dir: ./outputs/qwen2.5-7b-mug-lora
 logging_dir: ./outputs/logs
 logging_steps: 10
-save_steps: 200
-eval_steps: 200
-save_total_limit: 3
+save_steps: 50
+eval_steps: 50
+save_total_limit: 5
 
 per_device_train_batch_size: 8
 per_device_eval_batch_size: 8
 gradient_accumulation_steps: 8
-learning_rate: 2.0e-4
-num_train_epochs: 5.0
+learning_rate: 1.0e-4
+num_train_epochs: 3.0
 lr_scheduler_type: cosine
 warmup_ratio: 0.1
 bf16: true
