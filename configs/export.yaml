@@ -1,0 +1,13 @@
+### Model Configuration
+model_name_or_path: ./models/Qwen/Qwen2.5-7B
+trust_remote_code: true
+
+### Adapter Configuration  
+adapter_name_or_path: ./outputs/qwen2.5-7b-mug-lora
+finetuning_type: lora
+template: qwen
+
+### Export Configuration
+export_dir: ./outputs/qwen2.5-7b-mug-merged
+export_size: 2
+export_legacy_format: false
