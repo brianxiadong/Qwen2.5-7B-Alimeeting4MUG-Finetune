@@ -1,5 +1,5 @@
 ### Model Configuration
-model_name_or_path: /data/Alimeeting4MUG/models/Qwen/Qwen2.5-7B
+model_name_or_path: ./models/Qwen/Qwen2.5-7B
 trust_remote_code: true
 
 ### Fine-tuning Method
@@ -7,11 +7,11 @@ stage: sft
 do_train: true
 finetuning_type: lora
 
-### LoRA Configuration (防过拟合优化版 v2)
-lora_rank: 64
-lora_alpha: 128
-lora_dropout: 0.1
-lora_target: q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj
+### LoRA Configuration (防过拟合优化版 v3)
+lora_rank: 32              # 降低 rank 减少过拟合
+lora_alpha: 64             # alpha = 2 × rank (标准做法)
+lora_dropout: 0.15         # 提高 dropout 增强正则化
+lora_target: all           # 使用 all 目标
 
 ### Dataset Configuration
 dataset_dir: ./data
@@ -23,19 +23,19 @@ max_samples: 10000
 overwrite_cache: true
 preprocessing_num_workers: 8
 
-### Training Parameters
-output_dir: ./outputs/qwen2.5-7b-mug-lora
+### Training Parameters (保守设置防过拟合)
+output_dir: ./outputs/qwen2.5-7b-mug-lora-v3
 logging_dir: ./outputs/logs
-logging_steps: 10
-save_steps: 50
-eval_steps: 50
-save_total_limit: 5
+logging_steps: 5
+save_steps: 20             # 更频繁保存，便于早期发现问题
+eval_steps: 20             # 更频繁评估
+save_total_limit: 10
 
-per_device_train_batch_size: 8
-per_device_eval_batch_size: 8
-gradient_accumulation_steps: 8
-learning_rate: 1.0e-4
-num_train_epochs: 3.0
+per_device_train_batch_size: 4   # 适中的 batch size
+per_device_eval_batch_size: 4
+gradient_accumulation_steps: 4   # 有效 batch size = 16
+learning_rate: 3.0e-5            # 更保守的学习率
+num_train_epochs: 2.0            # 减少 epochs，防止过拟合
 lr_scheduler_type: cosine
 warmup_ratio: 0.1
 bf16: true
@@ -44,10 +44,12 @@ ddp_timeout: 180000000
 ### Evaluation
 val_size: 0.0
 eval_strategy: steps
+load_best_model_at_end: true     # 自动选择最优 checkpoint
+metric_for_best_model: eval_loss
 
-### Quantization (disabled for A800 bf16 training)
+### Quantization (disabled for bf16 training)
 # quantization_bit: 4
 # quantization_method: bitsandbytes
 
-### Flash Attention (enabled for A800)
+### Flash Attention
 flash_attn: fa2
