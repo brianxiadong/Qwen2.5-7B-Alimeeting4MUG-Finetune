@@ -184,13 +184,64 @@ cd ..
 pip install -r requirements.txt
 ```
 
-### 4. 安装可选加速组件
+### 4. 安装 Flash Attention 2（推荐）
+
+Flash Attention 2 是一种高效的注意力机制实现，可以：
+- ⚡ **加速训练** 1.5-2 倍
+- 💾 **减少显存占用** 5-20 倍（针对注意力层）
+- 📈 **支持更长序列** 而不会 OOM
+
+#### 方式一：使用预编译 wheel（推荐）
+
+由于 Flash Attention 编译很慢，建议直接下载预编译的 wheel 文件：
 
 ```bash
-# Flash Attention 2 (推荐，可显著加速训练)
-pip install flash-attn --no-build-isolation
+# 1. 检测你的环境版本
+python scripts/check_flash_attn_env.py
 
-# DeepSpeed (多 GPU 训练)
+# 或使用一行命令快速检测
+python -c "import torch; import sys; v=sys.version_info; print(f'Python: cp{v.major}{v.minor}, PyTorch: {torch.__version__.split(\"+\")[0]}, CUDA: {torch.version.cuda}, CXX11_ABI: {torch._C._GLIBCXX_USE_CXX11_ABI}')"
+```
+
+输出示例：
+```
+Python: cp312, PyTorch: 2.5.0, CUDA: 12.1, CXX11_ABI: False
+```
+
+2. 根据输出，到 [Flash Attention Releases](https://github.com/Dao-AILab/flash-attention/releases) 下载对应版本：
+
+| 环境 | wheel 文件名 |
+|------|-------------|
+| Python 3.12 + PyTorch 2.5 + CUDA 12 + ABI=False | `flash_attn-2.8.3+cu12torch2.5cxx11abiFALSE-cp312-cp312-linux_x86_64.whl` |
+| Python 3.12 + PyTorch 2.5 + CUDA 12 + ABI=True | `flash_attn-2.8.3+cu12torch2.5cxx11abiTRUE-cp312-cp312-linux_x86_64.whl` |
+| Python 3.10 + PyTorch 2.1 + CUDA 11.8 | `flash_attn-2.8.3+cu118torch2.1cxx11abiFALSE-cp310-cp310-linux_x86_64.whl` |
+
+3. 下载并安装：
+```bash
+# 下载 (替换为你的版本)
+wget https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.3/flash_attn-xxx.whl
+
+# 安装
+pip install flash_attn-xxx.whl
+```
+
+#### 方式二：从源码编译（慢，约 10-30 分钟）
+
+```bash
+pip install flash-attn --no-build-isolation
+```
+
+> ⚠️ 编译需要大量 RAM（建议 32GB+）和 CUDA 开发环境。
+
+#### 验证安装
+
+```bash
+python -c "import flash_attn; print(f'Flash Attention {flash_attn.__version__} installed successfully!')"
+```
+
+### 5. 安装 DeepSpeed（多 GPU 训练）
+
+```bash
 pip install deepspeed
 ```
 
